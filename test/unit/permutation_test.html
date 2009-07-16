@@ -102,12 +102,31 @@ new Test.Unit.Runner({
     PERMS.each(function(perm){
       var id = perm;
       perm.each(function(p){
-        assertEqual(id.value(), (p.compose(p.invert())).value());
-        assertEqual(id, p.compose(p.invert()));
-        assertEqual(id.value(), p.compose(p.invert()).value());
+				assertEnumEqual(id.value(), (p.compose(p.invert())).value());
+        assertEnumEqual(id, p.compose(p.invert()));
+        assertEnumEqual(id.value(), p.compose(p.invert()).value());
       });
     });
-  }}
+  }},
+	
+	testCycles: function() { with(this) {
+    PERMS.each(function(perm, i){
+			console.log(CYCLES[i], ":::", perm.map(function(p){ return p.cycles()}));
+			assertEnumEqual(CYCLES[i], perm.map(function(p){ return p.cycles() }));
+    });
+  }},
+	
+	testCompose: function() { with(this) {
+    var too_big = new Permutation(10);
+		PERMS.slice(0, 3).each(function(perm){
+			var elements = perm.toArray();
+			for(var i = 0; i < elements.length; i++){
+				for(var j = 0; j < elements.length; j++){
+					
+				}
+			}
+		});
+  }},
     
 }, {testLog: "testlog"}); 
 // For each Test.UnitRunner instance, specify the element id where results will be

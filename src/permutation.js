@@ -7,15 +7,6 @@ var Permutation = Class.create({
     this.last = this.factorial(size) - 1;
   },
   
-  _each: function(iterator) {
-    console.log("in _each");
-    $R(0, this.last).each(function(r){
-      var klon = Object.clone(this);
-      klon.setRank(r);
-      iterator(klon);
-    });
-  },
-  
   setRank: function(m){
     this.rank = m % this.factorial(this.size);
   },
@@ -39,8 +30,8 @@ var Permutation = Class.create({
   
   rank_indices: function(p){
     var result = 0; 
-    for(var i = result; i <= this.size; i++){
-      result += p[i] * this.factorial(this.size - i - 1);
+    for(var i = result; i < this.size; i++){
+      result = result + (p[i] * this.factorial(this.size - i - 1));
       for(var j = (i+1); j <= this.size; j++){
         if(p[j] > p[i]) p[j] -= 1; 
       }
@@ -74,9 +65,9 @@ var Permutation = Class.create({
   doInvert: function(){
     var indices = this.unrank_indices(this.rank);
     var inverted = new Array(this.size);
-    $R(0, this.size).each(function(i){
-      inverted[indices[i]] = i;
-    });
+		for(var i = 0; i <= this.size; i++){
+			inverted[indices[i]] = i;
+		}
     this.setRank(this.rank_indices(inverted));
     return this;
   },
@@ -84,11 +75,19 @@ var Permutation = Class.create({
   compose: function(other){
     if(this.size != other.size) throw "permutations of unequal sizes cannot be composed!";
     var indices = this.value();
-    var composed = other.value.map(function(i){ return indices[i]; });
+    var composed = other.value().map(function(i){ return indices[i]; });
     var klon = Object.clone(this);
     klon.setRank(this.rank_indices(composed));
     return klon;
   },
+	
+	toArray: function(){
+		return [Object.clone(this)];
+	},
+	
+	eql: function(other){
+		return this.size == other.size && this.rank == other.rank;
+	},
   
   invert: function(){
     return Object.clone(this).doInvert();
@@ -103,24 +102,34 @@ var Permutation = Class.create({
       current = current || perm.find(function(x){return !seen[x]});
       if(current == null){ break };
       if(seen[current]){
-        current = nil
+        current = null
         result.push([]);
       } else {
         seen[current] = true;
         result.last().push(current);
         current = perm[current];
       }
-      result.pop();
-      return result.select(function(c){ return c.length > 1}).map(function(c){
-        var min_index = c.indexOf(c.min());
-        return c.slice(min_index, c.length).concat(c.slice(0, min_index));
-      });
     }
+		result.pop();
+    return result.select(function(c){ return c.length > 1}).map(function(c){
+      var min_index = c.indexOf(c.min());
+      return c.slice(min_index, c.length).concat(c.slice(0, min_index));
+    });
   }
 
 });
 
 Object.extend(Permutation.prototype, Enumerable);
+
+Object.extend(Permutation.prototype, {
+	_each: function(iterator) {
+		for(var r = 0; r <= this.last; r++){
+      var klon = Object.clone(this);
+      klon.setRank(r);
+      iterator(klon);
+		}
+  }
+});
 
 
 Permutation.fcache = [ 1 ];
