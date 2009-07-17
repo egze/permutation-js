@@ -6,6 +6,7 @@
   <meta http-equiv="content-type" content="text/html; charset=utf-8" />
   <script src="../assets/jsunittest.js" type="text/javascript"></script>
   <script src="../../src/ext/prototype-1.6.0.3.js" type="text/javascript"></script>
+  <script src="../../src/comparable.js" type="text/javascript"></script>
   <script src="../../src/permutation.js" type="text/javascript"></script>
   
   <link rel="stylesheet" href="../assets/unittest.css" type="text/css" />
@@ -30,7 +31,7 @@
 
 <script type="text/javascript">
 // <![CDATA[
-
+  //console.log = function(){};
   var PERMS = $R(0, 4).map(function(i){ return new Permutation(i) });
   var PERMS_COLLECTIONS = ["", "a", "ab", "abc", "abcd"].map(function(c){ return Permutation.for_value(c) });
   var PERMS_EACH = $A([
@@ -98,34 +99,157 @@ new Test.Unit.Runner({
     
   },
   
+  testCreated: function() { with(this) {
+    var factorial = 1;
+    PERMS.each(function(p, i){
+      assertEqual(i, p.size)
+      assertEqual(factorial - 1, p.last)
+      factorial *= (i + 1)
+    });
+  }},
+  
+  testRankAssign: function() { with(this) {
+    var perm = new Permutation(3);
+    var perms = [
+      [0, 1, 2],
+      [0, 2, 1],
+      [1, 0, 2],
+      [1, 2, 0],
+      [2, 0, 1],
+      [2, 1, 0],
+      [0, 1, 2],
+    ];
+    for(var i = -12; i < -6; i++){
+      perm.setRank(i);
+      assertEnumEqual(perms[i + 12], perm.value());
+    }
+    for(var i = -6; i < 0; i++){
+      perm.setRank(i);
+      assertEnumEqual(perms[i + 6], perm.value());
+    }
+    for(var i = 0; i < 6; i++){
+      perm.setRank(i);
+      assertEnumEqual(perms[i], perm.value());
+    }
+    for(var i = 6; i < 12; i++){
+      perm.setRank(i);
+      assertEnumEqual(perms[i - 6], perm.value());
+    }
+    for(var i = 12; i < 17; i++){
+      perm.setRank(i);
+      assertEnumEqual(perms[i - 12], perm.value());
+    }
+  }},
+  
+  testCompare: function() { with(this) {
+    var perm1 = new Permutation(3);
+    var perm2 = new Permutation(3);
+    var perm3 = Object.clone(perm1);
+    var perm4 = new Permutation(3, 1);
+    assert(perm1 != perm2);
+    assert(perm1.eql(perm2));
+    assertEqual(0, perm1.compareTo(perm2));
+    assertEqual(perm1.hash(), perm2.hash());
+    assert(perm1 != perm3);
+    assert(perm1.eql(perm3));
+    assertEqual(0, perm1.compareTo(perm3));
+    assertEqual(perm1.hash(), perm3.hash());
+    assert(!perm1.eql(perm4));
+    assert(perm1 != perm4);
+    assert(!perm1.eql(perm4));
+    assertEqual(-1, perm1.compareTo(perm4));
+    assertEqual(1, perm4.compareTo(perm1));
+    assert(perm1.lt(perm4));
+    assert(perm4.gt(perm1));
+    assert(perm1.hash() != perm4.hash());
+    var perms = perm1.toArray();
+    perms.slice(1, perms.length -1).each(function(p, i){
+      assert(p.gt(perms[i]));
+      assertEqual(1, p.compareTo(perms[i]));
+      assert(perms[i].lt(p));
+      assertEqual(-1, perms[i].compareTo(p));
+    });
+  }},
+  
+  testRandom: function() { with(this) {
+    PERMS_EACH.each(function(perms, i){
+      var perm = new Permutation(i);
+      while(perms.length != 0){
+        var deleted = perm.random().value();
+        perms = perms.map(function(e){ if(deleted != e && !deleted.compare(e)) {return e;} }).compact();
+        if(deleted != null && !Object.isUndefined(deleted)) assert(true);
+      }
+    });
+  }},
+  
+  testEnumerable: function() { with(this) {
+    PERMS.each(function(perm, i){
+      assertEnumEqual(PERMS_EACH[i], perm.map(function(x){ return x.value() }));
+    });
+    PERMS.each(function(perm, i){
+      var ary = [];
+      var old_rank = perm.rank;
+      perm.doEach(function(x){
+        ary.push(x.value());
+      });
+      assertEnumEqual(PERMS_EACH[i], ary);
+      assertEqual(old_rank, perm.rank);
+    });
+  }},
+  
+  testNext: function(){ with(this) {
+    NEXT_PRED.each(function(pred){
+      var before = pred[0], after = pred[1];
+      var beforep = Permutation.from_value(before);
+      var afterp = Permutation.from_value(after);
+      assert(afterp.eql(beforep.next()));
+      assert(beforep.eql(afterp.pred()));
+      assert(afterp.eql(beforep.succ()));
+    });
+  }},
+  
+  testProject: function(){ with(this) {
+    var too_big = new Array(10);
+    PERMS.each(function(perms, i){
+      assertEnumEqual(PROJECTED[i], perms.map(function(p){ return p.project(PROJECTED[i][0])}));
+    });
+    PERMS_COLLECTIONS.each(function(perms, i){
+      assertEnumEqual(PROJECTED[i], perms.map(function(p){ return p.project()}));
+    });
+  }},
+  
+  
+  
+
+  
   testInvert: function() { with(this) {
     PERMS.each(function(perm){
       var id = perm;
       perm.each(function(p){
-				assertEnumEqual(id.value(), (p.compose(p.invert())).value());
+        assertEnumEqual(id.value(), (p.compose(p.invert())).value());
         assertEnumEqual(id, p.compose(p.invert()));
-        assertEnumEqual(id.value(), p.compose(p.invert()).value());
+        assertEnumEqual(id.value(), p.compose(p.invert()).value());        
       });
     });
   }},
-	
-	testCycles: function() { with(this) {
+  
+  testCycles: function() { with(this) {
     PERMS.each(function(perm, i){
-			console.log(CYCLES[i], ":::", perm.map(function(p){ return p.cycles()}));
-			assertEnumEqual(CYCLES[i], perm.map(function(p){ return p.cycles() }));
+      //console.log(CYCLES[i], ":::", perm.map(function(p){ return p.cycles()}));
+      assertEnumEqual(CYCLES[i], perm.map(function(p){ return p.cycles() }));
     });
   }},
-	
-	testCompose: function() { with(this) {
+  
+  testCompose: function() { with(this) {
     var too_big = new Permutation(10);
-		PERMS.slice(0, 3).each(function(perm){
-			var elements = perm.toArray();
-			for(var i = 0; i < elements.length; i++){
-				for(var j = 0; j < elements.length; j++){
-					
-				}
-			}
-		});
+    PERMS.slice(0, 3).each(function(perm){
+      var elements = perm.toArray();
+      for(var i = 0; i < elements.length; i++){
+        for(var j = 0; j < elements.length; j++){
+          
+        }
+      }
+    });
   }},
     
 }, {testLog: "testlog"}); 
