@@ -103,20 +103,40 @@ var Permutation = Class.create({
   
   signum: function(){
     var s = 1;
-    cycles.each(function(c){
+    this.cycles().each(function(c){
       if(c.length.mod(2) == 0){
         s = s * -1;
       }
     });
     return s;
   },
-  
+	
+	even: function(){
+		return this.signum() == 1;
+	},
+	
+	odd: function(){
+		return this.signum() == -1;
+	},
+	
   rank_indices: function(p){
-    var result = 0; 
+    var result = 0;
     for(var i = result; i < this.size; i++){
-      result = result + (p[i] * this.factorial(this.size - i - 1));
-      for(var j = (i+1); j <= this.size; j++){
-        if(p[j] > p[i]) p[j] -= 1; 
+			var p_i = p[i] ? p[i].ord() : p[i];
+      result = result + (p_i * this.factorial(this.size - i - 1));
+      for(var j = (i+1); j < this.size; j++){
+				var p_j = p[j] ? p[j].ord() : p[j];
+        if(p_j > p_i){
+					if(Object.isString(p)){
+						p[j] = (p_j - 1).chr();
+						var p_a = p.toArray();
+						p_a[j] = (p_j - 1).chr();
+						p = p_a.join("");
+					} else {
+						p[j] = (p_j - 1).chr();
+					}
+				}
+				p_j = p[j] ? p[j].ord() : p[j];
       }
     }
     return result;    
@@ -191,22 +211,24 @@ var Permutation = Class.create({
   cycles: function(){
     var perm = this.value();
     var result = [[]];
-    var seen = {};
+    var seen = new Hash();
     var current = null;
-    while(seen != perm.length){
-      current = current || perm.find(function(x){return !seen[x]});
-      if(current == null){ break };
-      if(seen[current]){
+    while(true){
+			if(current == null || Object.isUndefined(current)){
+				current = perm.find(function(x){return Object.isUndefined(seen.get(x))});
+			}
+      if(current == null || Object.isUndefined(current)){ break };
+      if(!Object.isUndefined(seen.get(current))){
         current = null
         result.push([]);
       } else {
-        seen[current] = true;
+				seen.set(current, true);
         result.last().push(current);
         current = perm[current];
       }
     }
     result.pop();
-    return result.select(function(c){ return c.length > 1}).map(function(c){
+		return result.select(function(c){ return c.length > 1}).map(function(c){
       var min_index = c.indexOf(c.min());
       return c.slice(min_index, c.length).concat(c.slice(0, min_index));
     });
@@ -230,4 +252,21 @@ Permutation.for_value = function(collection, rank){
   var perm = new Permutation(collection.length, rank);
   perm.collection = collection;
   return perm;
+}
+
+Permutation.from_cycles = function(cycles, max){
+  var max = max || 0;
+	var indices = new Array(max);
+	cycles.each(function(cycle){
+		if(cycle.length == 0) { return true; }
+		for(var i = 0; i < cycle.length; i++){
+			indices[cycle[i - 1]] = cycle[i]
+		}
+	});
+	indices.each(function(r, i){
+		if(Object.isUndefined(r) || r == false || r == null){
+			indices[i] = i;
+		}
+	});
+	return Permutation.from_value(indices);
 }

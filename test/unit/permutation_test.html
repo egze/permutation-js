@@ -7,6 +7,7 @@
   <script src="../assets/jsunittest.js" type="text/javascript"></script>
   <script src="../../src/ext/prototype-1.6.0.3.js" type="text/javascript"></script>
   <script src="../../src/comparable.js" type="text/javascript"></script>
+	<script src="../../src/sha1.js" type="text/javascript"></script>
   <script src="../../src/permutation.js" type="text/javascript"></script>
   
   <link rel="stylesheet" href="../assets/unittest.css" type="text/css" />
@@ -233,10 +234,24 @@ new Test.Unit.Runner({
     });
   }},
   
+	testSignum: function(){ with(this) {
+		PERMS.each(function(perm, i){
+			assertEnumEqual(SIGNUM[i], perm.map(function(p){ return p.signum()}));
+			assertEnumEqual(SIGNUM[i].map(function(x){ return x == 1}), perm.map(function(p){ return p.even()}));
+			assertEnumEqual(SIGNUM[i].map(function(x){ return x == -1}), perm.map(function(p){ return p.odd()}));
+		});
+	}},
+	
   testCycles: function() { with(this) {
     PERMS.each(function(perm, i){
-      //console.log(CYCLES[i], ":::", perm.map(function(p){ return p.cycles()}));
       assertEnumEqual(CYCLES[i], perm.map(function(p){ return p.cycles() }));
+			var perm_array = perm.toArray();
+			var cycles_array = CYCLES[i].map(function(c){ return Permutation.from_cycles(c, i)});
+			perm_array.each(function(p, i){
+				console.log(p, cycles_array[i]);
+				assert(p.eql(cycles_array[i]));
+			});
+			//assertEnumEqual(perm.toArray(), CYCLES[i].map(function(c){ return Permutation.from_cycles(c, i)}));
     });
   }},
   
